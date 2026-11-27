@@ -9,7 +9,7 @@ repos:
         entry: ontman normalize
         language: system
         files: \.ttl$
-        exclude: ^tests/fixtures/
+        exclude: ^tests/
 
       # Before pushing: run every quality gate locally so CI rarely surprises you.
       - id: ontman-check

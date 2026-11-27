@@ -1,0 +1,13 @@
+# Ontology Manager project settings. Paths are relative to this file.
+ontology = "src/ontology.ttl"
+namespace = "http://example.org/bank#"
+
+# Small example data used to test inference. Never loaded into production.
+fixtures = ["tests/fixtures/sample-data.ttl"]
+
+# SPARQL rules: every query in violations_dir must return 0 rows.
+violations_dir = "tests/violations"
+# Competency questions: each query states how many rows it must return.
+competency_dir = "tests/competency"
+
+changelog = "CHANGELOG.md"

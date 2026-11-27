@@ -34,6 +34,7 @@ tests/fixtures/*.ttl          small sample data used to test inference
 tests/violations/*.rq         rules: each query must return 0 rows
 tests/competency/*.rq         questions the ontology must be able to answer
 tests/test_ontman.py          tests for the toolkit itself
+tests/toolkit/sample_project/ frozen copy of the sample project those tests use
 ontman/                       the CLI
 ontman.toml                   project settings (paths, namespace)
 CHANGELOG.md                  human-readable history, Keep a Changelog format
