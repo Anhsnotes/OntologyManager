@@ -11,3 +11,6 @@ violations_dir = "tests/violations"
 competency_dir = "tests/competency"
 
 changelog = "CHANGELOG.md"
+
+# Generated Markdown for LLM prompts and readers (`ontman export-md`). Checked by `ontman check`.
+docs_md = "docs/ontology.md"

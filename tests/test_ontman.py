@@ -179,3 +179,48 @@ def test_removing_an_axiom_is_major(project):
 def test_no_change_is_none(project):
     old, new = _versions(project)
     assert diff(old, new, NS).is_empty
+
+
+# ---------------------------------------------------------------- export-md
+
+def _md(project: Path) -> str:
+    from ontman.export import export_markdown
+    g = graphs.load(project / "src/ontology.ttl")
+    return export_markdown(g, NS, project / "tests/competency")
+
+
+def test_markdown_covers_terms_rules_and_examples(project):
+    md = _md(project)
+    assert "PREFIX : <http://example.org/bank#>" in md
+    assert "- `:Loan`: An agreement" in md
+    assert "  - `:Mortgage`" in md                      # nested under Loan
+    assert "  - `:SecuredLoan`" in md                   # defined class nested under Loan
+    assert "`:Loan` **and** (`:hasCollateral` **some** `:Collateral`)" in md
+    assert "`:locatedIn` is transitive" in md
+    assert "`:HomeLoan` → use `:Mortgage`" in md
+    assert "- `:HomeLoan`" not in md.split("## Deprecated")[0]   # not offered as a class
+    assert "**Which loans were originated in the Midwest region?**" in md
+    assert "# expect" not in md                          # test headers stripped from examples
+
+
+def test_markdown_is_deterministic_and_tracks_changes(project):
+    first = _md(project)
+    assert _md(project) == first
+    g = graphs.load(project / "src/ontology.ttl")
+    edit.add_class(g, NS, "Lease", "Lease", "A rental agreement for equipment.", parent="Loan")
+    graphs.save(g, project / "src/ontology.ttl")
+    assert "`:Lease`: A rental agreement for equipment." in _md(project)
+
+
+def test_stale_markdown_fails_check(project):
+    cfg_file = project / "ontman.toml"
+    cfg_file.write_text(cfg_file.read_text() + '\ndocs_md = "docs/ontology.md"\n')
+    assert errors_for(run_check(project), "docs")            # missing
+    cfg = load_config(project)
+    (project / "docs").mkdir()
+    cfg.docs_md.write_text(checks.render_docs(cfg, graphs.load(cfg.ontology)))
+    assert not errors_for(run_check(project), "docs")        # fresh
+    g = graphs.load(cfg.ontology)
+    edit.add_class(g, NS, "Lease", "Lease", "A rental agreement.", parent="Loan")
+    graphs.save(g, cfg.ontology)
+    assert errors_for(run_check(project), "docs")            # stale after edit

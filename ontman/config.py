@@ -18,6 +18,7 @@ class Config:
     violations_dir: Path | None = None
     competency_dir: Path | None = None
     changelog: Path | None = None
+    docs_md: Path | None = None
 
 
 def find_root(start: Path | None = None) -> Path:
@@ -47,4 +48,5 @@ def load_config(start: Path | None = None) -> Config:
         violations_dir=p("violations_dir", "tests/violations"),
         competency_dir=p("competency_dir", "tests/competency"),
         changelog=p("changelog", "CHANGELOG.md"),
+        docs_md=p("docs_md", None),
     )
