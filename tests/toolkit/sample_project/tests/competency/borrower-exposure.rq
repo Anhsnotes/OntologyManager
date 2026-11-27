@@ -1,0 +1,10 @@
+# question: What is each person's total borrowing?
+# expect: 2
+# needs: borrowerOf inferred as the inverse of hasBorrower
+PREFIX : <http://example.org/bank#>
+SELECT ?person (SUM(?amt) AS ?total) WHERE {
+  ?person a :Person ;
+          :borrowerOf ?loan .
+  ?loan :amount ?amt .
+}
+GROUP BY ?person
