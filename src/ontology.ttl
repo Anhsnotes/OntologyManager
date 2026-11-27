@@ -39,6 +39,13 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     rdfs:comment "An asset pledged to secure a loan." ;
 .
 
+:Heloc
+    a owl:Class ;
+    rdfs:label "HELOC" ;
+    rdfs:comment "Home equity line of credit, secured by the borrower's home." ;
+    rdfs:subClassOf :Loan ;
+.
+
 :HomeLoan
     a owl:Class ;
     rdfs:label "Home loan (deprecated)" ;
