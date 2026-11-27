@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ontman"
+version = "0.1.0"
+description = "Ontology Manager: git-based change cycle for OWL ontologies in Turtle"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["rdflib>=7.0", "owlrl>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pre-commit>=3"]
+
+[project.scripts]
+ontman = "ontman.cli:main"
+
+[tool.setuptools]
+packages = ["ontman"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning:rdflib.*"]

@@ -1,0 +1,189 @@
+PREFIX : <http://example.org/bank#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+<http://example.org/bank>
+    a owl:Ontology ;
+    rdfs:label "Bank Lending Ontology" ;
+    rdfs:comment "Sample ontology for the Ontology Manager change cycle." ;
+    owl:versionInfo "0.1.0" ;
+.
+
+:AutoLoan
+    a owl:Class ;
+    rdfs:label "Auto loan" ;
+    rdfs:comment "A loan used to buy a vehicle, secured by that vehicle." ;
+    rdfs:subClassOf :Loan ;
+.
+
+:Branch
+    a owl:Class ;
+    rdfs:label "Branch" ;
+    rdfs:comment "A physical bank branch where loans are originated." ;
+    rdfs:subClassOf :Organization ;
+.
+
+:City
+    a owl:Class ;
+    rdfs:label "City" ;
+    rdfs:comment "A city." ;
+    rdfs:subClassOf :Location ;
+.
+
+:Collateral
+    a owl:Class ;
+    rdfs:label "Collateral" ;
+    rdfs:comment "An asset pledged to secure a loan." ;
+.
+
+:HomeLoan
+    a owl:Class ;
+    rdfs:label "Home loan (deprecated)" ;
+    dcterms:isReplacedBy :Mortgage ;
+    rdfs:comment "Deprecated: use Mortgage instead." ;
+    rdfs:subClassOf :Loan ;
+    owl:deprecated true ;
+.
+
+:Loan
+    a owl:Class ;
+    rdfs:label "Loan" ;
+    rdfs:comment "An agreement where the bank lends money that must be repaid." ;
+.
+
+:Location
+    a owl:Class ;
+    rdfs:label "Location" ;
+    rdfs:comment "A geographic area such as a city, state or region." ;
+.
+
+:Mortgage
+    a owl:Class ;
+    rdfs:label "Mortgage" ;
+    rdfs:comment "A loan used to buy real estate, secured by that real estate." ;
+    rdfs:subClassOf :Loan ;
+.
+
+:Organization
+    a owl:Class ;
+    rdfs:label "Organization" ;
+    rdfs:comment "A company, institution or other non-human party." ;
+    rdfs:subClassOf :Party ;
+    owl:disjointWith :Person ;
+.
+
+:Party
+    a owl:Class ;
+    rdfs:label "Party" ;
+    rdfs:comment "A person or organization that takes part in a financial agreement." ;
+.
+
+:Person
+    a owl:Class ;
+    rdfs:label "Person" ;
+    rdfs:comment "An individual human party." ;
+    rdfs:subClassOf :Party ;
+.
+
+:RealEstate
+    a owl:Class ;
+    rdfs:label "Real estate" ;
+    rdfs:comment "Land or buildings pledged as collateral." ;
+    rdfs:subClassOf :Collateral ;
+.
+
+:Region
+    a owl:Class ;
+    rdfs:label "Region" ;
+    rdfs:comment "A business reporting region made up of states." ;
+    rdfs:subClassOf :Location ;
+.
+
+:SecuredLoan
+    a owl:Class ;
+    rdfs:label "Secured loan" ;
+    rdfs:comment "Any loan backed by at least one piece of collateral. Membership is inferred, never asserted." ;
+    owl:equivalentClass
+        [
+            a owl:Class ;
+            owl:intersectionOf (
+                :Loan
+                
+                [
+                    a owl:Restriction ;
+                    owl:onProperty :hasCollateral ;
+                    owl:someValuesFrom :Collateral ;
+                ]
+            ) ;
+        ] ;
+.
+
+:State
+    a owl:Class ;
+    rdfs:label "State" ;
+    rdfs:comment "A state or province." ;
+    rdfs:subClassOf :Location ;
+.
+
+:Vehicle
+    a owl:Class ;
+    rdfs:label "Vehicle" ;
+    rdfs:comment "A car, truck or other vehicle pledged as collateral." ;
+    rdfs:subClassOf :Collateral ;
+    owl:disjointWith :RealEstate ;
+.
+
+:borrowerOf
+    a owl:ObjectProperty ;
+    rdfs:label "borrower of" ;
+    rdfs:comment "Links a party to a loan they must repay. Inverse of hasBorrower." ;
+.
+
+:hasBorrower
+    a owl:ObjectProperty ;
+    rdfs:label "has borrower" ;
+    rdfs:comment "Links a loan to the party responsible for repaying it." ;
+    rdfs:domain :Loan ;
+    rdfs:range :Party ;
+    owl:inverseOf :borrowerOf ;
+.
+
+:hasCollateral
+    a owl:ObjectProperty ;
+    rdfs:label "has collateral" ;
+    rdfs:comment "Links a loan to an asset pledged to secure it." ;
+    rdfs:domain :Loan ;
+    rdfs:range :Collateral ;
+.
+
+:locatedIn
+    a
+        owl:ObjectProperty ,
+        owl:TransitiveProperty ;
+    rdfs:label "located in" ;
+    rdfs:comment "Links a branch or location to a larger location containing it. Transitive: city in state in region." ;
+.
+
+:originatedAt
+    a owl:ObjectProperty ;
+    rdfs:label "originated at" ;
+    rdfs:comment "Links a loan to the branch that issued it." ;
+    rdfs:domain :Loan ;
+    rdfs:range :Branch ;
+.
+
+:amount
+    a owl:DatatypeProperty ;
+    rdfs:label "amount" ;
+    rdfs:comment "Original principal amount of the loan in USD." ;
+    rdfs:domain :Loan ;
+    rdfs:range xsd:decimal ;
+.
+
+dcterms:isReplacedBy
+    a owl:AnnotationProperty ;
+    rdfs:label "is replaced by" ;
+.

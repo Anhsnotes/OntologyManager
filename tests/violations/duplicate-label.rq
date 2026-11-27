@@ -1,0 +1,10 @@
+# description: Two terms share the same label (confusing for users and LLMs)
+# severity: error
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?a ?b ?label WHERE {
+  ?a rdfs:label ?la .
+  ?b rdfs:label ?lb .
+  FILTER(isIRI(?a) && isIRI(?b) && STR(?a) < STR(?b))
+  FILTER(LCASE(STR(?la)) = LCASE(STR(?lb)))
+  BIND(STR(?la) AS ?label)
+}

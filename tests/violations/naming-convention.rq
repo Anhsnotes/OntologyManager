@@ -1,0 +1,18 @@
+# description: Naming convention - classes are UpperCamelCase, properties are lowerCamelCase
+# severity: warning
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT ?term ?rule WHERE {
+  {
+    ?term a owl:Class .
+    BIND(REPLACE(STR(?term), "^.*[#/]", "") AS ?name)
+    FILTER(!REGEX(?name, "^[A-Z][A-Za-z0-9]*$"))
+    BIND("class should be UpperCamelCase" AS ?rule)
+  } UNION {
+    VALUES ?type { owl:ObjectProperty owl:DatatypeProperty }
+    ?term a ?type .
+    BIND(REPLACE(STR(?term), "^.*[#/]", "") AS ?name)
+    FILTER(!REGEX(?name, "^[a-z][A-Za-z0-9]*$"))
+    BIND("property should be lowerCamelCase" AS ?rule)
+  }
+  FILTER(isIRI(?term))
+}

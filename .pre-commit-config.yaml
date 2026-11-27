@@ -1,0 +1,21 @@
+# Install once:  pip install -e ".[dev]" && pre-commit install --hook-type pre-commit --hook-type pre-push
+repos:
+  - repo: local
+    hooks:
+      # On every commit: rewrite staged .ttl files in canonical form.
+      # If anything changed, the commit stops; `git add` the files and commit again.
+      - id: ontman-normalize
+        name: ontman normalize
+        entry: ontman normalize
+        language: system
+        files: \.ttl$
+        exclude: ^tests/fixtures/
+
+      # Before pushing: run every quality gate locally so CI rarely surprises you.
+      - id: ontman-check
+        name: ontman check
+        entry: ontman check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

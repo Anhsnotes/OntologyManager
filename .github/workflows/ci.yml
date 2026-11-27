@@ -1,0 +1,73 @@
+name: Ontology CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write   # to post the ontology diff on the PR
+
+jobs:
+  checks:
+    name: ontman checks + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed to diff against the base branch
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ontman
+        run: pip install -e ".[dev]"
+
+      - name: Quality gates (format, rules, typos, consistency, competency questions)
+        run: ontman check
+
+      - name: Toolkit tests
+        run: pytest -q
+
+      - name: Semantic diff vs base branch
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ontman diff --base "origin/${{ github.base_ref }}" --format markdown > diff.md
+          cat diff.md
+          # Post or update the diff as a PR comment (skipped for forks: token is read-only).
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file diff.md --edit-last \
+            || gh pr comment "${{ github.event.pull_request.number }}" --body-file diff.md \
+            || echo "Could not comment on PR (fork?). Diff is in the job summary."
+
+  owl-dl:
+    name: OWL DL reasoning (HermiT via ROBOT)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Download ROBOT
+        run: |
+          curl -sSL -o robot.jar https://github.com/ontodev/robot/releases/latest/download/robot.jar
+          echo 'java -jar "$GITHUB_WORKSPACE/robot.jar" "$@"' > robot && chmod +x robot
+          echo "$GITHUB_WORKSPACE" >> "$GITHUB_PATH"
+
+      - name: Valid OWL 2 DL
+        run: robot validate-profile --profile DL --input src/ontology.ttl --output profile.txt || (cat profile.txt; exit 1)
+
+      - name: Consistent, no unsatisfiable classes (ontology + sample data)
+        run: |
+          robot merge --input src/ontology.ttl --input tests/fixtures/sample-data.ttl \
+            reason --reasoner HermiT --output reasoned.ttl
+
+      # When this ontology is connected to SQL through Ontop, add:
+      # - run: robot validate-profile --profile QL --input src/ontology.ttl

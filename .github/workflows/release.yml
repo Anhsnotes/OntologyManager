@@ -1,0 +1,47 @@
+name: Release ontology
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -e .
+
+      - name: Tag must match owl:versionInfo
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(python -c "from ontman import graphs; from rdflib import OWL; g=graphs.load('src/ontology.ttl'); print(g.value(graphs.ontology_iri(g), OWL.versionInfo))")
+          echo "tag=$TAG versionInfo=$VERSION"
+          test "$TAG" = "$VERSION" || { echo "Tag v$TAG does not match owl:versionInfo $VERSION. Run 'ontman bump'."; exit 1; }
+
+      - name: Gates must pass
+        run: ontman check
+
+      - name: Build release notes from CHANGELOG
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '
+            $0 ~ "^## \\[" v "\\]" {found=1; next}
+            found && /^## \[/ {exit}
+            found {print}
+          ' CHANGELOG.md > notes.md
+          test -s notes.md || echo "No changelog entry for this version." > notes.md
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp src/ontology.ttl "ontology-${GITHUB_REF_NAME}.ttl"
+          gh release create "$GITHUB_REF_NAME" "ontology-${GITHUB_REF_NAME}.ttl" \
+            --title "Ontology $GITHUB_REF_NAME" --notes-file notes.md
