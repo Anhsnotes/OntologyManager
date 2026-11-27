@@ -11,7 +11,9 @@ requires-python = ">=3.11"
 dependencies = ["rdflib>=7.0", "owlrl>=6.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pre-commit>=3"]
+dev = ["pytest>=8", "pre-commit>=3", "mcp>=2.3"]
+mcp = ["mcp>=2.3"]
+agent = ["anthropic>=2"]
 
 [project.scripts]
 ontman = "ontman.cli:main"
