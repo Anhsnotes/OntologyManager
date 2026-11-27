@@ -11,6 +11,15 @@ repos:
         files: \.ttl$
         exclude: ^tests/
 
+      # When the ontology or the example questions change, regenerate docs/ontology.md.
+      # If it changed, the commit stops; `git add docs/ontology.md` and commit again.
+      - id: ontman-export-md
+        name: ontman export-md
+        entry: ontman export-md
+        language: system
+        pass_filenames: false
+        files: ^(src/.*\.ttl|tests/competency/.*\.rq|ontman\.toml)$
+
       # Before pushing: run every quality gate locally so CI rarely surprises you.
       - id: ontman-check
         name: ontman check

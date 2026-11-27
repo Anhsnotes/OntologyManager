@@ -176,6 +176,28 @@ def check_consistency_and_competency(cfg: Config, onto: Graph, report: Report) -
             report.add(name, f'"{q}" returned {n} rows, expected {expect}')
 
 
+def render_docs(cfg: Config, onto: Graph) -> str:
+    from .export import export_markdown  # local import: export imports this module
+
+    ns = graphs.base_namespace(onto, cfg.namespace)
+    src = cfg.ontology.resolve().relative_to(cfg.root.resolve()).as_posix()
+    return export_markdown(onto, ns, cfg.competency_dir, source_name=src)
+
+
+def check_docs(cfg: Config, onto: Graph, report: Report) -> None:
+    """The generated Markdown must match the ontology it was generated from."""
+    if not cfg.docs_md:
+        return
+    name = "docs"
+    rel = cfg.docs_md.name
+    if not cfg.docs_md.exists():
+        report.add(name, f"{rel} is missing. Run `ontman export-md`.")
+    elif cfg.docs_md.read_text() != render_docs(cfg, onto):
+        report.add(name, f"{rel} is out of date with the ontology. Run `ontman export-md`.")
+    else:
+        report.passed.append(name)
+
+
 def run_all(cfg: Config, skip_format: bool = False) -> Report:
     report = Report()
     try:
@@ -192,4 +214,5 @@ def run_all(cfg: Config, skip_format: bool = False) -> Report:
     check_undefined_terms(cfg, onto, ns, report)
     check_deprecations(cfg, onto, ns, report)
     check_consistency_and_competency(cfg, onto, report)
+    check_docs(cfg, onto, report)
     return report

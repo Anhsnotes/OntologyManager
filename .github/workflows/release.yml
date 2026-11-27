@@ -43,5 +43,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp src/ontology.ttl "ontology-${GITHUB_REF_NAME}.ttl"
-          gh release create "$GITHUB_REF_NAME" "ontology-${GITHUB_REF_NAME}.ttl" \
+          cp docs/ontology.md "ontology-${GITHUB_REF_NAME}.md"
+          gh release create "$GITHUB_REF_NAME" "ontology-${GITHUB_REF_NAME}.ttl" "ontology-${GITHUB_REF_NAME}.md" \
             --title "Ontology $GITHUB_REF_NAME" --notes-file notes.md

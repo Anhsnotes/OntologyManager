@@ -13,7 +13,7 @@ pull request
    │  CI: HermiT via ROBOT              → full OWL DL reasoning
    │  CI: ontman diff                   → semantic diff + suggested version bump on the PR
    ▼
-merge → ontman bump → git tag vX.Y.Z    → GitHub release with the versioned .ttl
+merge → ontman bump → git tag vX.Y.Z    → GitHub release with the versioned .ttl + .md
 ```
 
 ## Quick start
@@ -31,6 +31,7 @@ ontman reason    # see what the ontology infers from the sample data
 ```
 src/ontology.ttl              the ontology (the only file you edit for meaning)
 tests/fixtures/*.ttl          small sample data used to test inference
+docs/ontology.md              generated LLM-ready Markdown (ontman export-md)
 tests/violations/*.rq         rules: each query must return 0 rows
 tests/competency/*.rq         questions the ontology must be able to answer
 tests/test_ontman.py          tests for the toolkit itself
@@ -51,6 +52,7 @@ CHANGELOG.md                  human-readable history, Keep a Changelog format
 | `ontman add-class Heloc --parent Loan --label "HELOC" --comment "..."` | Adds a class safely (parent must exist, name must be new) |
 | `ontman add-property hasCoBorrower --domain Loan --range Person --label ... --comment ...` | Adds an object or data property (`--kind data --range decimal`) |
 | `ontman deprecate AutoLoan --replaced-by Loan --reason "..."` | Deprecates instead of deleting, so existing queries keep working |
+| `ontman export-md [--check]` | Generates `docs/ontology.md`, the LLM-ready version of the ontology (see below) |
 | `ontman bump minor` | Bumps `owl:versionInfo` and moves Unreleased changelog notes under the new version |
 
 You can still edit `src/ontology.ttl` in Protégé or a text editor. The pre-commit hook normalizes the file either way.
@@ -92,6 +94,34 @@ SELECT ?loan WHERE { ?loan a :Loan ; :originatedAt/:locatedIn :Midwest }
 
 The sample questions only pass because of inference: transitive `locatedIn`, the defined class `SecuredLoan`, and the inverse property `borrowerOf`. If someone breaks one of those, CI fails.
 
+## Markdown for LLMs (`docs/ontology.md`)
+
+`ontman export-md` turns the ontology into a compact Markdown file you can paste into an LLM prompt, or retrieve from for RAG. The `.ttl` file stays the source of truth: the Markdown is generated from it and never edited by hand.
+
+It contains:
+- **Prefixes and usage rules**: use only listed terms, avoid deprecated ones, and let the reasoner do inference
+- **Class hierarchy** with each class's plain-language definition (`rdfs:comment`)
+- **Class rules** in readable OWL, e.g. `:Loan` **and** (`:hasCollateral` **some** `:Collateral`), plus disjointness
+- **Property tables**: domain → range, transitive/inverse, meaning
+- **What the reasoner infers**, so the model writes simple SPARQL and doesn't try to reason itself
+- **Deprecated terms** and their replacements
+- **Worked examples**: every competency question with its SPARQL, for few-shot prompting
+
+It stays in sync automatically:
+- `add-class`, `add-property`, `deprecate` and `bump` regenerate it.
+- The pre-commit hook regenerates it when the ontology or competency questions change.
+- `ontman check` (and so CI) fails if the committed file is stale.
+- Each GitHub release attaches `ontology-vX.Y.Z.md` next to the `.ttl`.
+
+Use `ontman export-md -o prompt.md --no-examples` for a shorter version.
+
+Typical text-to-SPARQL prompt:
+```
+<system>You write SPARQL for the ontology below. Reply with one query only.</system>
+{contents of docs/ontology.md}
+Question: Which secured loans were originated in Illinois?
+```
+
 ## Versioning rules (`ontman diff`)
 
 | Bump | When |
@@ -108,7 +138,7 @@ git commit -am "Release v0.2.0"
 git tag v0.2.0 && git push --follow-tags
 ```
 
-The release workflow checks that the tag matches `owl:versionInfo`, re-runs the gates, and publishes a GitHub release. The release has the versioned `.ttl` attached and the changelog section as its notes.
+The release workflow checks that the tag matches `owl:versionInfo`, re-runs the gates, and publishes a GitHub release. The release has the versioned `.ttl` and `.md` attached and the changelog section as its notes.
 
 ## Notes
 

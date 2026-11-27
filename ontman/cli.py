@@ -108,6 +108,16 @@ def cmd_diff(args, cfg) -> int:
     return 0
 
 
+def _refresh_docs(cfg) -> None:
+    """Keep the generated Markdown in step with every scripted change."""
+    if cfg.docs_md:
+        text = checks.render_docs(cfg, graphs.load(cfg.ontology))
+        if not cfg.docs_md.exists() or cfg.docs_md.read_text() != text:
+            cfg.docs_md.parent.mkdir(parents=True, exist_ok=True)
+            cfg.docs_md.write_text(text)
+            print(f"{GREEN}✓{RESET} regenerated {cfg.docs_md.name}")
+
+
 def _edit(cfg, fn) -> int:
     g = graphs.load(cfg.ontology)
     try:
@@ -117,6 +127,7 @@ def _edit(cfg, fn) -> int:
         return 1
     graphs.save(g, cfg.ontology)
     print(f"{GREEN}✓{RESET} {msg}")
+    _refresh_docs(cfg)
     print(f"{DIM}Next: ontman check && git diff{RESET}")
     return 0
 
@@ -140,6 +151,31 @@ def cmd_deprecate(args, cfg) -> int:
         f"deprecated :{args.name}" + (f" (replaced by :{args.replaced_by})" if args.replaced_by else ""))[1])
 
 
+def cmd_export_md(args, cfg) -> int:
+    out = Path(args.output) if args.output else cfg.docs_md
+    if out is None:
+        print("No output path: pass -o FILE or set docs_md in ontman.toml.", file=sys.stderr)
+        return 2
+    onto = graphs.load(cfg.ontology)
+    if args.no_examples:
+        from .export import export_markdown
+        src = cfg.ontology.resolve().relative_to(cfg.root.resolve()).as_posix()
+        text = export_markdown(onto, _ns(cfg, onto), None, source_name=src, examples=False)
+    else:
+        text = checks.render_docs(cfg, onto)
+    if args.check:
+        if out.exists() and out.read_text() == text:
+            print(f"{GREEN}ok{RESET}   {out} is up to date")
+            return 0
+        print(f"{RED}FAIL{RESET} {out} is out of date (run `ontman export-md`)")
+        return 1
+    out.parent.mkdir(parents=True, exist_ok=True)
+    changed = not out.exists() or out.read_text() != text
+    out.write_text(text)
+    print(f"{'wrote    ' if changed else 'unchanged'} {out} ({len(text.split())} words)")
+    return 0
+
+
 def cmd_bump(args, cfg) -> int:
     g = graphs.load(cfg.ontology)
     try:
@@ -149,6 +185,7 @@ def cmd_bump(args, cfg) -> int:
         return 1
     graphs.save(g, cfg.ontology)
     print(f"{GREEN}✓{RESET} version {old} → {new}")
+    _refresh_docs(cfg)
     if cfg.changelog and edit.release_changelog(cfg.changelog, new):
         print(f"{GREEN}✓{RESET} {cfg.changelog.name}: Unreleased notes moved under [{new}]")
     print(f"{DIM}Next: git commit -am 'Release v{new}' && git tag v{new}{RESET}")
@@ -211,6 +248,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--replaced-by")
     s.add_argument("--reason")
     s.set_defaults(func=cmd_deprecate)
+
+    s = sub.add_parser("export-md", help="generate LLM-ready Markdown from the ontology")
+    s.add_argument("-o", "--output", help="output file (default: docs_md in ontman.toml)")
+    s.add_argument("--check", action="store_true", help="only report whether the file is up to date")
+    s.add_argument("--no-examples", action="store_true", help="leave out the competency SPARQL examples")
+    s.set_defaults(func=cmd_export_md)
 
     s = sub.add_parser("bump", help="bump owl:versionInfo and roll the changelog")
     s.add_argument("part", choices=["major", "minor", "patch"])
