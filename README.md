@@ -36,7 +36,8 @@ tests/violations/*.rq         rules: each query must return 0 rows
 tests/competency/*.rq         questions the ontology must be able to answer
 tests/test_ontman.py          tests for the toolkit itself
 tests/toolkit/sample_project/ frozen copy of the sample project those tests use
-ontman/                       the CLI
+ontman/                       the CLI, agent tools (tools.py) and MCP server (mcp_server.py)
+examples/agent.py             a minimal front-end agent that uses the tools
 ontman.toml                   project settings (paths, namespace)
 CHANGELOG.md                  human-readable history, Keep a Changelog format
 ```
@@ -53,6 +54,8 @@ CHANGELOG.md                  human-readable history, Keep a Changelog format
 | `ontman add-property hasCoBorrower --domain Loan --range Person --label ... --comment ...` | Adds an object or data property (`--kind data --range decimal`) |
 | `ontman deprecate AutoLoan --replaced-by Loan --reason "..."` | Deprecates instead of deleting, so existing queries keep working |
 | `ontman export-md [--check]` | Generates `docs/ontology.md`, the LLM-ready version of the ontology (see below) |
+| `ontman tool run_sparql '{"query":"..."}'` | Calls one agent tool from the shell and shows exactly what the model would see |
+| `ontman serve [--transport streamable-http]` | Runs the agent tools as an MCP server |
 | `ontman bump minor` | Bumps `owl:versionInfo` and moves Unreleased changelog notes under the new version |
 
 You can still edit `src/ontology.ttl` in Protégé or a text editor. The pre-commit hook normalizes the file either way.
@@ -120,6 +123,53 @@ Typical text-to-SPARQL prompt:
 <system>You write SPARQL for the ontology below. Reply with one query only.</system>
 {contents of docs/ontology.md}
 Question: Which secured loans were originated in Illinois?
+```
+
+## Agent tools (`ontman.tools`)
+
+A front-end agent answers questions by exploring the ontology and running SPARQL. These six tools give it a safe way to do that:
+
+| Tool | What the agent uses it for |
+|---|---|
+| `search_terms(text)` | Map words in the question to ontology terms (typos get "did you mean") |
+| `describe_term(term)` | Definition, parents and children, rules, domain/range, which properties apply |
+| `find_instances(cls, text)` | Exact IRIs for named things (`:Illinois`, not a guess like `:IL`) |
+| `validate_sparql(query)` | Syntax check, read-only check, and every term must exist |
+| `run_sparql(query)` | Validates, then runs with reasoning, capped rows and a timeout |
+| `get_schema()` | The whole ontology as Markdown |
+
+The guardrails apply however the tools are called: queries are read-only (no UPDATE), unknown terms are rejected with suggestions, guessed instance names trigger a warning, results are capped at 200 rows with a 30-second timeout, and errors come back as plain text the model can fix and retry.
+
+**Where the data comes from**
+- By default: the ontology plus `tests/fixtures/`, with OWL RL reasoning. You can build and test an agent before any database is connected.
+- Set `endpoint = "http://.../sparql"` in `ontman.toml`, or pass `--endpoint`, to query a live endpoint such as Ontop over SQL.
+
+### Three ways to use the tools
+
+**1. In your own agent (no MCP).** Import the tools and give their definitions to the model:
+```python
+from ontman.tools import OntologyTools
+tools = OntologyTools.from_config()
+resp = client.messages.create(model=..., tools=tools.anthropic_tools(), messages=...)
+# for each tool_use block:
+output = tools.call(block.name, block.input)   # never raises; errors come back as text
+```
+`examples/agent.py` is a complete agent loop: `pip install -e ".[agent]"`, then `python examples/agent.py "How much do we have in secured loans in Illinois?"`. For OpenAI-compatible frameworks, use `tools.openai_tools()`.
+
+**2. Over MCP, for Claude Desktop, Claude Code, claude.ai or other agents.** Install with `pip install -e ".[mcp]"`, then:
+```bash
+ontman serve                                   # stdio
+claude mcp add ontology -- ontman serve        # register it with Claude Code
+
+ontman serve --transport streamable-http       # shared: http://127.0.0.1:8000/mcp
+```
+The server exposes the same six tools, marked read-only, plus an `ontology://schema` resource.
+
+**3. From the shell, for debugging.**
+```bash
+ontman tool search_terms '{"text": "secured"}'
+ontman tool run_sparql '{"query": "PREFIX : <http://example.org/bank#> SELECT ?l WHERE { ?l a :SecureLoan }"}'
+# → Error: Unknown class :SecureLoan. Did you mean :SecuredLoan?
 ```
 
 ## Versioning rules (`ontman diff`)

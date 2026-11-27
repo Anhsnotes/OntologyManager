@@ -176,6 +176,23 @@ def cmd_export_md(args, cfg) -> int:
     return 0
 
 
+def cmd_serve(args, cfg) -> int:
+    from .mcp_server import serve
+    serve(args.transport, args.host, args.port, args.endpoint)
+    return 0
+
+
+def cmd_tool(args, cfg) -> int:
+    """Call one agent tool from the shell, e.g. to see what the model will see."""
+    import json as _json
+
+    from .tools import OntologyTools
+    tools = OntologyTools.from_config(endpoint=args.endpoint)
+    params = _json.loads(args.args) if args.args else {}
+    print(tools.call(args.name, params))
+    return 0
+
+
 def cmd_bump(args, cfg) -> int:
     g = graphs.load(cfg.ontology)
     try:
@@ -254,6 +271,20 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--check", action="store_true", help="only report whether the file is up to date")
     s.add_argument("--no-examples", action="store_true", help="leave out the competency SPARQL examples")
     s.set_defaults(func=cmd_export_md)
+
+    s = sub.add_parser("serve", help="run the agent tools as an MCP server")
+    s.add_argument("--transport", choices=["stdio", "streamable-http"], default="stdio")
+    s.add_argument("--host", default="127.0.0.1")
+    s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--endpoint", help="SPARQL endpoint for data (default: local fixtures)")
+    s.set_defaults(func=cmd_serve)
+
+    s = sub.add_parser("tool", help="call one agent tool, e.g. ontman tool search_terms '{\"text\":\"loan\"}'")
+    s.add_argument("name", help="search_terms, describe_term, find_instances, validate_sparql, "
+                                "run_sparql, get_schema")
+    s.add_argument("args", nargs="?", help="JSON object of arguments")
+    s.add_argument("--endpoint", help="SPARQL endpoint for data (default: local fixtures)")
+    s.set_defaults(func=cmd_tool)
 
     s = sub.add_parser("bump", help="bump owl:versionInfo and roll the changelog")
     s.add_argument("part", choices=["major", "minor", "patch"])

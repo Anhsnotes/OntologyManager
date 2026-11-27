@@ -19,6 +19,7 @@ class Config:
     competency_dir: Path | None = None
     changelog: Path | None = None
     docs_md: Path | None = None
+    endpoint: str | None = None
 
 
 def find_root(start: Path | None = None) -> Path:
@@ -49,4 +50,5 @@ def load_config(start: Path | None = None) -> Config:
         competency_dir=p("competency_dir", "tests/competency"),
         changelog=p("changelog", "CHANGELOG.md"),
         docs_md=p("docs_md", None),
+        endpoint=raw.get("endpoint"),
     )
