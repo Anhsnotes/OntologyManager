@@ -33,7 +33,8 @@ jobs:
         run: pytest -q
 
       - name: Semantic diff vs base branch
-        if: github.event_name == 'pull_request'
+        # Run even if a gate failed: reviewers still want to see what changed.
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

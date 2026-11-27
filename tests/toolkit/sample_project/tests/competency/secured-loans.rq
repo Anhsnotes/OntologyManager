@@ -1,0 +1,8 @@
+# question: Which loans are secured, and by what?
+# expect: 2
+# needs: SecuredLoan defined as "Loan with some Collateral" (never asserted in data)
+PREFIX : <http://example.org/bank#>
+SELECT ?loan ?collateral WHERE {
+  ?loan a :SecuredLoan ;
+        :hasCollateral ?collateral .
+}

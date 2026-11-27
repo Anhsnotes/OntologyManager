@@ -1,4 +1,9 @@
-"""Tests for the ontman toolkit itself (not for the ontology's content)."""
+"""Tests for the ontman toolkit itself (not for the ontology's content).
+
+These tests run against a frozen copy of the sample project in
+tests/toolkit/sample_project, so they keep passing however src/ontology.ttl
+evolves. Only test_repo_ontology_passes_all_checks looks at the live ontology.
+"""
 
 from __future__ import annotations
 
@@ -14,21 +19,16 @@ from ontman.config import load_config
 from ontman.diff import diff
 
 REPO = Path(__file__).resolve().parents[1]
+SAMPLE = Path(__file__).resolve().parent / "toolkit" / "sample_project"
 NS = "http://example.org/bank#"
 
 
 @pytest.fixture
 def project(tmp_path: Path) -> Path:
-    """A throwaway copy of this repo's ontology project."""
-    for item in ("ontman.toml", "src", "tests/fixtures", "tests/violations", "tests/competency"):
-        src = REPO / item
-        dst = tmp_path / item
-        if src.is_dir():
-            shutil.copytree(src, dst)
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(src, dst)
-    return tmp_path
+    """A throwaway copy of the frozen sample project."""
+    dst = tmp_path / "project"
+    shutil.copytree(SAMPLE, dst)
+    return dst
 
 
 def run_check(project: Path) -> checks.Report:
@@ -46,8 +46,13 @@ def test_repo_ontology_passes_all_checks():
     assert report.errors == [], [f.message for f in report.errors]
 
 
+def test_sample_project_passes_all_checks():
+    report = checks.run_all(load_config(SAMPLE))
+    assert report.errors == [], [f.message for f in report.errors]
+
+
 def test_canonical_output_ignores_triple_order():
-    g = graphs.load(REPO / "src/ontology.ttl")
+    g = graphs.load(SAMPLE / "src/ontology.ttl")
     expected = graphs.canonical(g)
     triples = list(g)
     random.Random(42).shuffle(triples)

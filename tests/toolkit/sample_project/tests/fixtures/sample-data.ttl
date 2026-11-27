@@ -1,0 +1,37 @@
+@prefix : <http://example.org/bank#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Small example data set. Used only to test that the ontology infers what we expect.
+# Note what is NOT asserted: no loan is typed SecuredLoan or Loan, no branch is
+# directly in the Midwest, and nobody is stated as borrowerOf anything.
+
+:Midwest a :Region .
+:Illinois a :State ; :locatedIn :Midwest .
+:Chicago a :City ; :locatedIn :Illinois .
+:Texas a :State .
+
+:ChicagoLoop a :Branch ; :locatedIn :Chicago .
+:AustinMain a :Branch ; :locatedIn :Texas .
+
+:alice a :Person .
+:bob a :Person .
+
+:house1 a :RealEstate .
+:car1 a :Vehicle .
+
+:loan1 a :Mortgage ;
+    :hasBorrower :alice ;
+    :hasCollateral :house1 ;
+    :originatedAt :ChicagoLoop ;
+    :amount "250000"^^xsd:decimal .
+
+:loan2 a :AutoLoan ;
+    :hasBorrower :bob ;
+    :hasCollateral :car1 ;
+    :originatedAt :ChicagoLoop ;
+    :amount "30000"^^xsd:decimal .
+
+:loan3 a :Loan ;
+    :hasBorrower :bob ;
+    :originatedAt :AustinMain ;
+    :amount "5000"^^xsd:decimal .

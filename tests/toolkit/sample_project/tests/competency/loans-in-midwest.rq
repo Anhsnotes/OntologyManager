@@ -1,0 +1,9 @@
+# question: Which loans were originated in the Midwest region?
+# expect: 2
+# needs: transitive :locatedIn (branch -> city -> state -> region) and Mortgage/AutoLoan subClassOf Loan
+PREFIX : <http://example.org/bank#>
+SELECT ?loan WHERE {
+  ?loan a :Loan ;
+        :originatedAt ?branch .
+  ?branch :locatedIn :Midwest .
+}
