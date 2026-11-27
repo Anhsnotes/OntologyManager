@@ -9,7 +9,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     a owl:Ontology ;
     rdfs:label "Bank Lending Ontology" ;
     rdfs:comment "Sample ontology for the Ontology Manager change cycle." ;
-    owl:versionInfo "0.1.0" ;
+    owl:versionInfo "0.2.0" ;
 .
 
 :AutoLoan
